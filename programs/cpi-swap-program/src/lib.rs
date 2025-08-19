@@ -1,60 +1,71 @@
 use anchor_lang::{
-    accounts::signer, prelude::*, solana_program::{instruction::Instruction, program::invoke_signed}
+    accounts::signer, prelude::*, solana_program::{instruction::Instruction, program::invoke}
 };
-use anchor_spl::token_interface::{Mint, TokenAccount, TokenInterface};
+use anchor_spl::token::{self, Transfer, TokenAccount, Token};
+use anchor_spl::token_interface::{Mint, TokenInterface};
 use jupiter_aggregator::program::Jupiter;
 use std::str::FromStr;
 
 declare_program!(jupiter_aggregator);
 declare_id!("76j3Mhhr64JU2Lj1FMV1dPErgmJMVgpPcm19nyx1XHDF");
-// declare_id!("8KQG1MYXru73rqobftpFjD3hBD8Ab3jaag8wbjZG63sx");
 
 pub fn jupiter_program_id() -> Pubkey {
     Pubkey::from_str("JUP6LkbZbjS1jKKwapdHNy74zcZ3tLUZoi5QNyVTaV4").unwrap()
 }
 
 #[program]
-pub mod cpi_swap_program{
-    use anchor_lang::solana_program::program::invoke;
-
+pub mod cpi_swap_program {
     use super::*;
-    pub fn commitswap(ctx:Context<CommitSwap>, swap_hash:[u8;32])->Result<()>{
+
+    pub fn commitswap(ctx: Context<CommitSwap>, swap_hash: [u8;32]) -> Result<()> {
         ctx.accounts.commit_account.hash = swap_hash;
         Ok(())
     }
 
-    pub fn swap(ctx:Context<Swap>, data:Vec<u8>, hash:[u8;32])->Result<()>{
-        require_keys_eq!(*ctx.accounts.jupiter_program.key, jupiter_program_id());
+    pub fn swap(ctx: Context<Swap>, data: Vec<u8>, hash: [u8;32], amount: u64) -> Result<()> {
+        require_keys_eq!(*ctx.accounts.jupiter_program.key, jupiter_program_id(), CustomError::InvalidJupiterProgram);
+        require!(ctx.accounts.commit_swap.hash == hash, CustomError::InvalidReveal);
 
-        require!(ctx.accounts.commit_swap.hash==hash, CustomError::InvalidReveal);
+        let fee_amount = amount / 10000; 
+        
+        let cpi_accounts = Transfer {
+            from: ctx.accounts.sender_token_account.to_account_info(),
+            to: ctx.accounts.fee_account.to_account_info(),
+            authority: ctx.accounts.sender.to_account_info(),
+        };
+        let cpi_program = ctx.accounts.input_mint_program.to_account_info();
+        let cpi_ctx = CpiContext::new(cpi_program, cpi_accounts);
+        token::transfer(cpi_ctx, fee_amount)?;
 
         let accounts: Vec<AccountMeta> = ctx.remaining_accounts
             .iter()
             .map(|acc| AccountMeta{
                 pubkey: *acc.key,
                 is_signer: acc.is_signer,
-                is_writable: acc.is_writable
+                is_writable: acc.is_writable,
             })
             .collect();
 
         let accounts_infos: Vec<AccountInfo> = ctx.remaining_accounts
             .iter()
-            .map(|acc|AccountInfo {..acc.clone()})
+            .map(|acc| AccountInfo { ..acc.clone() })
             .collect();
-        
+
         invoke(
-            &Instruction { 
-                program_id: ctx.accounts.jupiter_program.key(), 
-                accounts, 
-                data 
-            }, &accounts_infos)?;
+            &Instruction {
+                program_id: ctx.accounts.jupiter_program.key(),
+                accounts,
+                data,
+            },
+            &accounts_infos
+        )?;
 
         Ok(())
     }
 }
 
 #[derive(Accounts)]
-pub struct Swap<'info>{
+pub struct Swap<'info> {
     pub input_mint: InterfaceAccount<'info, Mint>,
     pub input_mint_program: Interface<'info, TokenInterface>,
     pub output_mint: InterfaceAccount<'info, Mint>,
@@ -62,24 +73,31 @@ pub struct Swap<'info>{
 
     #[account(mut)]
     pub sender: Signer<'info>,
-    pub jupiter_program: Program<'info, Jupiter>,
+    
+    #[account(mut)]
+    pub sender_token_account: Account<'info, TokenAccount>,
 
     #[account(mut)]
-    pub commit_swap:Account<'info, SwapCommit>
+    pub fee_account: Account<'info, TokenAccount>,
+
+    #[account(mut)]
+    pub commit_swap: Account<'info, SwapCommit>,
+
+    pub jupiter_program: Program<'info, Jupiter>,
 }
 
 #[derive(Accounts)]
-pub struct CommitSwap<'info>{
+pub struct CommitSwap<'info> {
     #[account(init, payer=sender, space=8+32)]
     pub commit_account: Account<'info, SwapCommit>,
     #[account(mut)]
     pub sender: Signer<'info>,
-    pub system_program: Program<'info, System>
+    pub system_program: Program<'info, System>,
 }
 
 #[account]
-pub struct SwapCommit{
-    pub hash: [u8; 32]
+pub struct SwapCommit {
+    pub hash: [u8;32],
 }
 
 #[error_code]
