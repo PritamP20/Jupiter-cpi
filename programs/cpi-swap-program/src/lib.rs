@@ -18,8 +18,15 @@ pub mod cpi_swap_program{
     use anchor_lang::solana_program::program::invoke;
 
     use super::*;
-    pub fn swap(ctx:Context<Swap>, data:Vec<u8>)->Result<()>{
+    pub fn commitswap(ctx:Context<CommitSwap>, swap_hash:[u8;32])->Result<()>{
+        ctx.accounts.commit_account.hash = swap_hash;
+        Ok(())
+    }
+
+    pub fn swap(ctx:Context<Swap>, data:Vec<u8>, hash:[u8;32])->Result<()>{
         require_keys_eq!(*ctx.accounts.jupiter_program.key, jupiter_program_id());
+
+        require!(ctx.accounts.commit_swap.hash==hash, CustomError::InvalidReveal);
 
         let accounts: Vec<AccountMeta> = ctx.remaining_accounts
             .iter()
@@ -55,5 +62,31 @@ pub struct Swap<'info>{
 
     #[account(mut)]
     pub sender: Signer<'info>,
-    pub jupiter_program: Program<'info, Jupiter>
+    pub jupiter_program: Program<'info, Jupiter>,
+
+    #[account(mut)]
+    pub commit_swap:Account<'info, SwapCommit>
+}
+
+#[derive(Accounts)]
+pub struct CommitSwap<'info>{
+    #[account(init, payer=sender, space=8+32)]
+    pub commit_account: Account<'info, SwapCommit>,
+    #[account(mut)]
+    pub sender: Signer<'info>,
+    pub system_program: Program<'info, System>
+}
+
+#[account]
+pub struct SwapCommit{
+    pub hash: [u8; 32]
+}
+
+#[error_code]
+pub enum CustomError {
+    #[msg("The revealed swap details do not match the committed hash.")]
+    InvalidReveal,
+
+    #[msg("Jupiter program ID mismatch.")]
+    InvalidJupiterProgram,
 }
