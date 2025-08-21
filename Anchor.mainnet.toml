@@ -1,0 +1,20 @@
+[toolchain]
+solana_version = "2.1.5"
+
+[features]
+resolution = true
+skip-lint = false
+
+[programs.mainnet]
+cpi_swap_program = "6bgtV78wMiuaTELQmXs1MxgFeF2uyT6kVCyyxLPzfL3H"
+
+[registry]
+url = "https://api.apr.dev"
+
+[provider]
+cluster = "mainnet-beta"
+wallet = "~/.config/solana/mainnet.json"
+
+[scripts]
+test-mainnet = "yarn run ts-mocha -p ./tsconfig.json -t 1000000 tests/newTest.ts"
+deploy-mainnet = "solana program deploy target/deploy/cpi_swap_program.so --program-id target/deploy/cpi_swap_program-keypair.json -u mainnet-beta --use-rpc --with-compute-unit-price 100"
