@@ -7,7 +7,7 @@ use jupiter_aggregator::program::Jupiter;
 use std::str::FromStr;
 
 declare_program!(jupiter_aggregator);
-declare_id!("76j3Mhhr64JU2Lj1FMV1dPErgmJMVgpPcm19nyx1XHDF");
+declare_id!("6bgtV78wMiuaTELQmXs1MxgFeF2uyT6kVCyyxLPzfL3H");
 
 pub fn jupiter_program_id() -> Pubkey {
     Pubkey::from_str("JUP6LkbZbjS1jKKwapdHNy74zcZ3tLUZoi5QNyVTaV4").unwrap()
@@ -19,14 +19,16 @@ pub mod cpi_swap_program {
 
     pub fn commitswap(ctx: Context<CommitSwap>, swap_hash: [u8;32]) -> Result<()> {
         ctx.accounts.commit_account.hash = swap_hash;
+        ctx.accounts.commit_account.used = false;
         Ok(())
     }
 
     pub fn swap(ctx: Context<Swap>, data: Vec<u8>, hash: [u8;32], amount: u64) -> Result<()> {
         require_keys_eq!(*ctx.accounts.jupiter_program.key, jupiter_program_id(), CustomError::InvalidJupiterProgram);
         require!(ctx.accounts.commit_swap.hash == hash, CustomError::InvalidReveal);
+        require!(ctx.accounts.commit_swap.used==false, CustomError::CommitUserAlready);
 
-        let fee_amount = amount / 10000; 
+        let fee_amount = std::cmp::max(1, amount / 1000);
         
         let cpi_accounts = Transfer {
             from: ctx.accounts.sender_token_account.to_account_info(),
@@ -59,7 +61,7 @@ pub mod cpi_swap_program {
             },
             &accounts_infos
         )?;
-
+        ctx.accounts.commit_swap.used = true;
         Ok(())
     }
 }
@@ -80,7 +82,11 @@ pub struct Swap<'info> {
     #[account(mut)]
     pub fee_account: Account<'info, TokenAccount>,
 
-    #[account(mut)]
+    #[account(
+        mut,
+        seeds = [b"commit", sender.key().as_ref()],
+        bump
+    )]
     pub commit_swap: Account<'info, SwapCommit>,
 
     pub jupiter_program: Program<'info, Jupiter>,
@@ -88,7 +94,13 @@ pub struct Swap<'info> {
 
 #[derive(Accounts)]
 pub struct CommitSwap<'info> {
-    #[account(init, payer=sender, space=8+32)]
+    #[account(
+        init_if_needed,
+        payer = sender, 
+        space = 8+32+1,
+        seeds = [b"commit", sender.key().as_ref()],
+        bump
+    )]
     pub commit_account: Account<'info, SwapCommit>,
     #[account(mut)]
     pub sender: Signer<'info>,
@@ -98,6 +110,7 @@ pub struct CommitSwap<'info> {
 #[account]
 pub struct SwapCommit {
     pub hash: [u8;32],
+    pub used: bool
 }
 
 #[error_code]
@@ -107,4 +120,7 @@ pub enum CustomError {
 
     #[msg("Jupiter program ID mismatch.")]
     InvalidJupiterProgram,
+
+    #[msg("Commit used already!!")]
+    CommitUserAlready
 }
