@@ -7,7 +7,7 @@ use jupiter_aggregator::program::Jupiter;
 use std::str::FromStr;
 
 declare_program!(jupiter_aggregator);
-declare_id!("58vxQT1Ky9NcYCi8c9NggViKaA7GyYRkkhaxuZKFHxn8");
+declare_id!("8ye6tCnoBQceV4DQGL59dCUe64PuoULxQdCiDCLDc3Pu");
 
 pub fn jupiter_program_id() -> Pubkey {
     Pubkey::from_str("JUP6LkbZbjS1jKKwapdHNy74zcZ3tLUZoi5QNyVTaV4").unwrap()

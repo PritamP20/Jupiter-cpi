@@ -7,7 +7,10 @@
     "test": "anchor test",
     "test:devnet": "anchor test tests/devnet-swap.ts --provider.cluster devnet",
     "test:mainnet": "anchor test tests/mainnet-swap.ts --provider.cluster mainnet",
-    "test:original": "anchor test tests/cpi-swap-program.ts --provider.cluster devnet"
+    "test:original": "anchor test tests/cpi-swap-program.ts --provider.cluster devnet",
+    "deploy-devnet": "solana program deploy target/deploy/cpi_swap_program.so   --program-id target/deploy/cpi_swap_program-keypair.json   -C ~/.config/solana/cli/config.yml   --use-rpc --with-compute-unit-price 10",
+    "deploy-mainnet": "solana program deploy target/deploy/cpi_swap_program.so --program-id target/deploy/cpi_swap_program-keypair.json -C ~/.config/solana/cli/mainnet.yml --use-rpc --with-compute-unit-price 50",
+    "resume-deploy-mainnet": "solana program deploy --buffer buffer-keypair.json --program-id target/deploy/cpi_swap_program-keypair.json -C ~/.config/solana/cli/mainnet.yml --use-rpc --with-compute-unit-price 50"
   },
   "dependencies": {
     "@coral-xyz/anchor": "^0.30.1",

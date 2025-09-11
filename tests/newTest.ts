@@ -34,15 +34,15 @@ const JUPITER_PROGRAM_ID = new PublicKey(
 
 // 🔴 MAINNET CONFIGURATION (COMMENTED OUT FOR SAFETY)
 
-const USDC_MINT = new PublicKey("EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v"); // mainnet USDC
-const USDC_TOKEN_PROGRAM = TOKEN_PROGRAM_ID; // mainnet USDC uses standard token program
-const NETWORK = "mainnet";
+// const USDC_MINT = new PublicKey("EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v"); // mainnet USDC
+// const USDC_TOKEN_PROGRAM = TOKEN_PROGRAM_ID; // mainnet USDC uses standard token program
+// const NETWORK = "mainnet";
 
 
 // 🟢 DEVNET CONFIGURATION (ACTIVE)
-// const USDC_MINT = new PublicKey("4zMMC9srt5Ri5X14GAgXhaHii3GnPAEERYPJgZJDncDU"); // devnet USDC
-// const USDC_TOKEN_PROGRAM = TOKEN_PROGRAM_ID; // devnet USDC uses Token-2022
-// const NETWORK = "devnet";
+const USDC_MINT = new PublicKey("4zMMC9srt5Ri5X14GAgXhaHii3GnPAEERYPJgZJDncDU"); // devnet USDC
+const USDC_TOKEN_PROGRAM = TOKEN_PROGRAM_ID; // devnet USDC uses Token-2022
+const NETWORK = "devnet";
 
 // Common constants
 const SOL_MINT = new PublicKey("So11111111111111111111111111111111111111112"); // wrapped SOL
@@ -451,32 +451,3 @@ function getNetworkConfig(network: "mainnet" | "devnet") {
     };
   }
 }
-
-/*
-=========================
-NETWORK SWITCHING GUIDE
-=========================
-
-TO SWITCH TO MAINNET:
-1. Comment out the DEVNET CONFIGURATION section
-2. Uncomment the MAINNET CONFIGURATION section
-3. Update your Anchor.toml to use mainnet RPC:
-   [provider]
-   cluster = "mainnet"
-   wallet = "~/.config/solana/id.json"
-
-4. Make sure you have sufficient SOL for mainnet operations (at least 0.1 SOL)
-5. Double-check all addresses and be cautious with real funds!
-
-CURRENT SETUP: DEVNET (SAFE FOR TESTING)
-- Uses devnet USDC mint with Token-2022 Program
-- Lower minimum balance requirement
-- Safe for testing without risking real funds
-
-⚠️  MAINNET WARNING ⚠️ 
-When switching to mainnet:
-- You'll be using real SOL and real tokens
-- Test thoroughly on devnet first
-- Start with very small amounts
-- Double-check all addresses and configurations
-*/
